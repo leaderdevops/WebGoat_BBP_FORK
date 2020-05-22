@@ -1,0 +1,97 @@
+# Docker
+# Build and push an image to Azure Container Registry
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+name: webgoat7.$(Year:yy).$(Month).$(DayOfMonth).$(buildID)
+
+trigger:
+  - cs-7.1
+
+resources:
+  - repo: self
+
+variables:
+  # Container registry service connection established during pipeline creation
+  dockerRegistryServiceConnection: 'fa1a811e-5b50-4061-845f-064d16b5354a'
+  imageRepository: 'cs-demo-java-webgoat'
+  containerRegistry: 'salesengineering.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+stages:
+  - stage: Build
+    displayName: Build and push stage
+    jobs:
+      - job: Build
+        displayName: Build
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+
+          - task: AzureKeyVault@1
+            inputs:
+              azureSubscription: 'Service Principal'
+              KeyVaultName: 'demo-on-demand-vault'
+              SecretsFilter: '*'
+              RunAsPreJob: false
+
+          - task: Bash@3
+            inputs:
+              targetType: 'inline'
+              script: 'curl -X GET https://eval.contrastsecurity.com/Contrast/api/ng/$(contrast-id)/agents/default/JAVA -H ''Authorization: $(contrast-auth)'' -H ''API-Key: $(contrast-key)'' -H ''Accept: application/json'' -OJ'
+
+          - task: Maven@3
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'clean compile install'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              javaHomeOption: 'JDKVersion'
+              mavenVersionOption: 'Default'
+              mavenAuthenticateFeed: false
+              effectivePomSkip: false
+              sonarQubeRunAnalysis: false
+
+          - task: DownloadGitHubRelease@0
+            inputs:
+              connection: 'github.com_marcoman'
+              userRepository: 'marcoman/WebGoat-Lessons'
+              defaultVersionType: 'specificVersion'
+              version: '26569678'
+              itemPattern: 'WebGoat-Lessons.zip'
+              downloadPath: '$(System.ArtifactsDirectory)'
+
+          - task: CmdLine@2
+            inputs:
+              script: 'unzip $(System.ArtifactsDirectory)/WebGoat-Lessons.zip'
+              workingDirectory: '$(Build.SourcesDirectory)/webgoat-container/src/main/webapp/plugin_lessons/'
+
+          - task: Maven@3
+            inputs:
+              mavenPomFile: 'pom.xml'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              javaHomeOption: 'JDKVersion'
+              mavenVersionOption: 'Default'
+              mavenAuthenticateFeed: false
+              effectivePomSkip: false
+              sonarQubeRunAnalysis: false
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.SourcesDirectory)/webgoat-standalone/target/webgoat-standalone-7.1-exec.jar'
+              ArtifactName: 'webgoat-exec.jar'
+              publishLocation: 'Container'
+
+          - task: Docker@2
+            displayName: Build and push an image to container registry
+            inputs:
+              containerRegistry: 'Azure Container Registry'
+              repository: '$(imageRepository)'
+              command: 'buildAndPush'
+              Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+              tags: '$(tag)'
+
