@@ -7,5 +7,5 @@ RUN mkdir /opt/contrast
 ADD contrast.jar /opt/contrast
 ADD contrast_security.yaml /opt/contrast
 EXPOSE 8080
-ENV JAVA_TOOL_OPTIONS "-javaagent:/opt/contrast/contrast.jar -Dcontrast.java.agent.standalone_app_name=Webgoat -Dcontrast.config.path=/opt/contrast/contrast_security.yaml -Dcontrast.application.tags=workshop,webgoat"
+ENV JAVA_TOOL_OPTIONS "-javaagent:/opt/contrast/contrast.jar -Dcontrast.java.agent.standalone_app_name=ws-webgoat -Dcontrast.config.path=/opt/contrast/contrast_security.yaml -Dcontrast.application.tags=workshop,webgoat,dockerfile"
 ENTRYPOINT ["java","-jar","/webgoat7.1/webgoat-container-7.1-exec.jar"]
