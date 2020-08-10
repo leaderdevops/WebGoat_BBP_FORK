@@ -2,7 +2,7 @@
 # Build and push an image to Azure Container Registry
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
-name: webgoat7.$(Year:yy).$(Month).$(DayOfMonth).$(buildID)
+name: contrast-demo-java-webgoat7.$(Year:yy).$(Month).$(DayOfMonth).$(buildID)
 
 trigger:
   - cs-7.1
@@ -57,10 +57,10 @@ stages:
 
           - task: DownloadGitHubRelease@0
             inputs:
-              connection: 'github.com_marcoman'
-              userRepository: 'marcoman/WebGoat-Lessons'
+              connection: 'marcoman'
+              userRepository: 'Contrast-Security-OSS/WebGoat-Lessons-BBP'
               defaultVersionType: 'specificVersion'
-              version: '26569678'
+              version: '26795846'
               itemPattern: 'WebGoat-Lessons.zip'
               downloadPath: '$(System.ArtifactsDirectory)'
 
